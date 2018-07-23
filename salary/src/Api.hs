@@ -24,17 +24,9 @@ instance ToJSON (PeopleT Identity)
 
 -- FIXME type PeopleAPI = "people" :> Get '[JSON] [People] Не работает
 type PeopleAPI = "people" :> Get '[JSON] [PeopleT Identity]
+                 "people" :> Post '[JSON
 
 type SalaryAPI = PeopleAPI
-
-handlePeople = liftIO $ do
-        conn <- connectPostgreSQL "postgresql://nlv@localhost/salary"
-        runBeamPostgresDebug putStrLn conn $ do
-            runSelectReturningList $ select allPeople
-        where salaryDb :: DatabaseSettings be SalaryDb
-              salaryDb = defaultDbSettings
-
-              allPeople = all_ (_salaryPeople salaryDb)
 
 salaryServer :: Server SalaryAPI
 salaryServer = handlePeople
@@ -44,4 +36,14 @@ salaryAPI = Proxy
 
 salaryApp :: Application
 salaryApp = serve salaryAPI salaryServer
+
+handlePeople :: Handle [PeopleT Identity]
+handlePeople = liftIO $ do
+        conn <- connectPostgreSQL "postgresql://nlv@localhost/salary"
+        runBeamPostgresDebug putStrLn conn $ do
+            runSelectReturningList $ select allPeople
+        where salaryDb :: DatabaseSettings be SalaryDb
+              salaryDb = defaultDbSettings
+
+              allPeople = all_ (_salaryPeople salaryDb)
 
