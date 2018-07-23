@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE OverloadedStrings #-}
+{- LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -13,15 +13,15 @@
 {- LANGUAGE NoMonomorphismRestriction #-}
 {- LANGUAGE UndecidableInstances #-}
 
-module Lib
-    ( someFunc
+module Data
+    ( PeopleT(..)
+    , SalaryDb(..)
     ) where
 
 import Database.Beam
-import Database.Beam.Postgres
-import Database.PostgreSQL.Simple
 
 import Data.Text (Text)
+
 
 {-- People --}
 
@@ -54,13 +54,3 @@ data SalaryDb f = SalaryDb
 
 instance Database be SalaryDb
 
-someFunc :: IO ()
-someFunc = do
-        conn <- connectPostgreSQL "postgresql://nlv@localhost/salary"
-        runBeamPostgresDebug putStrLn conn $ do
-            people <- runSelectReturningList $ select allPeople
-            mapM_ (liftIO . putStrLn . show) people
-        where salaryDb :: DatabaseSettings be SalaryDb
-              salaryDb = defaultDbSettings
-
-              allPeople = all_ (_salaryPeople salaryDb)
