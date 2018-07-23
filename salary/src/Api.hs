@@ -13,6 +13,7 @@ import Servant.Server
 
 import Database.Beam
 import Database.Beam.Postgres
+import Database.Beam.Backend.SQL.BeamExtensions
 
 import Data.Proxy
 import Data.Aeson
@@ -21,14 +22,19 @@ import Data.Text (Text)
 import Data
 
 instance ToJSON (PeopleT Identity)
+instance FromJSON (PeopleT Identity)
+instance ToJSON (PrimaryKey PeopleT Identity)
 
 -- FIXME type PeopleAPI = "people" :> Get '[JSON] [People] Не работает
-type PeopleAPI = "people" :> Get '[JSON] [PeopleT Identity]
+type PeopleAPI = "people" :> 
+                    (   Get '[JSON] [PeopleT Identity]
+                    :<|> ReqBody '[JSON] (PeopleT Identity) :> Post '[JSON] (PrimaryKey PeopleT Identity)
+                    ) 
 
 type SalaryAPI = PeopleAPI
 
 salaryServer :: Server SalaryAPI
-salaryServer = handlePeople
+salaryServer = getPeople :<|> postPeople
 
 salaryAPI :: Proxy SalaryAPI
 salaryAPI = Proxy
@@ -36,8 +42,8 @@ salaryAPI = Proxy
 salaryApp :: Application
 salaryApp = serve salaryAPI salaryServer
 
-handlePeople :: Handler [PeopleT Identity]
-handlePeople = liftIO $ do
+getPeople :: Handler [PeopleT Identity]
+getPeople = liftIO $ do
         conn <- connectPostgreSQL "postgresql://nlv@localhost/salary"
         runBeamPostgresDebug putStrLn conn $ do
             runSelectReturningList $ select allPeople
@@ -45,4 +51,15 @@ handlePeople = liftIO $ do
               salaryDb = defaultDbSettings
 
               allPeople = all_ (_salaryPeople salaryDb)
+
+postPeople :: (PeopleT Identity) -> Handler PeopleId 
+postPeople p0 = liftIO $ do
+        conn <- connectPostgreSQL "postgresql://nlv@localhost/salary"
+        [newPeople] <- runBeamPostgresDebug putStrLn conn $ do  
+            runInsertReturningList (_salaryPeople salaryDb) $ 
+              insertExpressions [People default_ (val_ $ _peopleFirstName p0) (val_ $ _peopleSurName p0) (val_ $ _peopleLastName p0)]
+        return (pk newPeople)    
+    where 
+          salaryDb :: DatabaseSettings be SalaryDb
+          salaryDb = defaultDbSettings
 

@@ -16,6 +16,7 @@
 module Data
     ( PeopleT(..)
     , SalaryDb(..)
+    , PeopleId(..)
     ) where
 
 import Database.Beam
