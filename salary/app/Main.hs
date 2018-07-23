@@ -2,12 +2,21 @@
 module Main where
 
 import Data.Text (Text)
+
+import Network.Wai.Handler.Warp
+
+import Data
+import Api
+
 import Database.Beam
 import Database.Beam.Postgres
-import Data
+
 
 main :: IO ()
-main = someFunc
+main = someFunc2
+
+someFunc2 :: IO ()
+someFunc2 = run 8081 salaryApp
 
 someFunc :: IO ()
 someFunc = do
