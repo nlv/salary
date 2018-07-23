@@ -24,7 +24,6 @@ instance ToJSON (PeopleT Identity)
 
 -- FIXME type PeopleAPI = "people" :> Get '[JSON] [People] Не работает
 type PeopleAPI = "people" :> Get '[JSON] [PeopleT Identity]
-                 "people" :> Post '[JSON
 
 type SalaryAPI = PeopleAPI
 
@@ -37,7 +36,7 @@ salaryAPI = Proxy
 salaryApp :: Application
 salaryApp = serve salaryAPI salaryServer
 
-handlePeople :: Handle [PeopleT Identity]
+handlePeople :: Handler [PeopleT Identity]
 handlePeople = liftIO $ do
         conn <- connectPostgreSQL "postgresql://nlv@localhost/salary"
         runBeamPostgresDebug putStrLn conn $ do
