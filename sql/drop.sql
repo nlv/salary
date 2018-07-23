@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS people_attrs;
+DROP TABLE IF EXISTS people;
