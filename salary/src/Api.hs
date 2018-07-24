@@ -24,17 +24,21 @@ import Data
 instance ToJSON (PeopleT Identity)
 instance FromJSON (PeopleT Identity)
 instance ToJSON (PrimaryKey PeopleT Identity)
+instance FromJSON (PrimaryKey PeopleT Identity)
+--instance FromHttpApiData (PrimaryKey PeopleT Identity)
 
 -- FIXME type PeopleAPI = "people" :> Get '[JSON] [People] Не работает
 type PeopleAPI = "people" :> 
                     (   Get '[JSON] [PeopleT Identity]
                     :<|> ReqBody '[JSON] (PeopleT Identity) :> Post '[JSON] (PrimaryKey PeopleT Identity)
+                    -- :<|> Capture "peopleId" (PrimaryKey PeopleT Identity) :> ReqBody '[JSON] (PeopleT Identity) :> PutNoContent '[JSON] NoContent
+                    :<|> Capture "peopleId" Int :> ReqBody '[JSON] (PeopleT Identity) :> PutNoContent '[JSON] NoContent
                     ) 
 
 type SalaryAPI = PeopleAPI
 
 salaryServer :: Server SalaryAPI
-salaryServer = getPeople :<|> postPeople
+salaryServer = getPeople :<|> postPeople :<|> putPeople
 
 salaryAPI :: Proxy SalaryAPI
 salaryAPI = Proxy
@@ -63,3 +67,14 @@ postPeople p0 = liftIO $ do
           salaryDb :: DatabaseSettings be SalaryDb
           salaryDb = defaultDbSettings
 
+--putPeople :: (PrimaryKey PeopleT Identity) -> (PeopleT Identity) -> Handler NoContent
+putPeople :: Int -> (PeopleT Identity) -> Handler NoContent
+putPeople peopleId p0 = liftIO $ do
+        conn <- connectPostgreSQL "postgresql://nlv@localhost/salary"
+        runBeamPostgresDebug putStrLn conn $ do  
+            runUpdate $ save (_salaryPeople salaryDb) newPeople
+        return NoContent
+
+        where newPeople = p0 { _peopleId = peopleId }
+              salaryDb :: DatabaseSettings be SalaryDb
+              salaryDb = defaultDbSettings
