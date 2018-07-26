@@ -10,6 +10,7 @@ module Api
 
 import Servant.API
 import Servant.Server
+import Servant.Server.StaticFiles
 
 import Database.Beam
 import Database.Beam.Postgres
@@ -35,10 +36,12 @@ type PeopleAPI = "people" :>
                     :<|> Capture "peopleId" Int :> ReqBody '[JSON] (PeopleT Identity) :> PutNoContent '[JSON] NoContent
                     ) 
 
-type SalaryAPI = PeopleAPI
+type StaticAPI = Raw
+
+type SalaryAPI = PeopleAPI :<|> StaticAPI
 
 salaryServer :: Server SalaryAPI
-salaryServer = getPeople :<|> postPeople :<|> putPeople
+salaryServer = (getPeople :<|> postPeople :<|> putPeople) :<|> serveDirectoryWebApp "../reactjs-ui/web"
 
 salaryAPI :: Proxy SalaryAPI
 salaryAPI = Proxy
