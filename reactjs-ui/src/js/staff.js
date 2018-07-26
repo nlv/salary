@@ -5,7 +5,7 @@ class StaffFilter extends React.Component {
         return (
             <div>
                 <label htmlFor="staffFilter">Поиск:</label> 
-                <input id="staffFilter" placehoder="Иванов"/>
+                <input id="staffFilter" placeholder="Строка поиска" onChange={e => this.props.onChange(e.target.value)}/>
             </div>
         );
     }
@@ -27,7 +27,7 @@ class StaffTable extends React.Component {
                     {
                         this.props.staff.map((s) => {
                             return (
-                                <tr>
+                                <tr key={s._peopleId.toString()}>
                                     <td>{s._peopleLastName}</td>
                                     <td>{s._peopleFirstName}</td>
                                     <td>{s._peopleSurName}</td>
@@ -46,10 +46,18 @@ class StaffPage extends React.Component {
     constructor(props) {
         super(props);
         this.state = { staff: [] };
+
+        this.fetchStaff = this.fetchStaff.bind(this);
     }
 
     componentDidMount() {
-        fetch('http://localhost:8081/people', {mode: 'no-cors'})
+        this.fetchStaff(null);
+    }
+
+    fetchStaff(q) {
+        let url = 'http://localhost:8081/people' + (q == null ? '' : '?q='+q);
+
+        fetch(url)
             .then(response => {
                 if (response.ok) {
                     return response.json();
@@ -65,7 +73,7 @@ class StaffPage extends React.Component {
     render () {
         return (
             <div>
-                <StaffFilter/>
+                <StaffFilter onChange={this.fetchStaff}/> 
                 <StaffTable staff={this.state.staff}/>
             </div>
         );

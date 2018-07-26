@@ -18,7 +18,8 @@ import Database.Beam.Backend.SQL.BeamExtensions
 
 import Data.Proxy
 import Data.Aeson
-import Data.Text (Text)
+import Data.Text  (Text)
+import qualified Data.Text as T (concat)
 
 import Data
 
@@ -30,7 +31,7 @@ instance FromJSON (PrimaryKey PeopleT Identity)
 
 -- FIXME type PeopleAPI = "people" :> Get '[JSON] [People] Не работает
 type PeopleAPI = "people" :> 
-                    (   Get '[JSON] [PeopleT Identity]
+                    (    QueryParam "q" Text :> Get '[JSON] [PeopleT Identity]
                     :<|> ReqBody '[JSON] (PeopleT Identity) :> Post '[JSON] (PrimaryKey PeopleT Identity)
                     -- :<|> Capture "peopleId" (PrimaryKey PeopleT Identity) :> ReqBody '[JSON] (PeopleT Identity) :> PutNoContent '[JSON] NoContent
                     :<|> Capture "peopleId" Int :> ReqBody '[JSON] (PeopleT Identity) :> PutNoContent '[JSON] NoContent
@@ -49,15 +50,25 @@ salaryAPI = Proxy
 salaryApp :: Application
 salaryApp = serve salaryAPI salaryServer
 
-getPeople :: Handler [PeopleT Identity]
-getPeople = liftIO $ do
+getPeople :: Maybe Text -> Handler [PeopleT Identity]
+getPeople q = liftIO $ do
         conn <- connectPostgreSQL "postgresql://nlv@localhost/salary"
         runBeamPostgresDebug putStrLn conn $ do
-            runSelectReturningList $ select allPeople
+            runSelectReturningList $ select $ allPeopleFiltered q
         where salaryDb :: DatabaseSettings be SalaryDb
               salaryDb = defaultDbSettings
 
+              allPeopleFiltered (Just q') = 
+                  filter_ (\p -> (_peopleLastName p `like_` q'') ||. (_peopleSurName p `like_` q'') ||. (_peopleFirstName p `like_` q'')) $ 
+                    allPeople
+
+                  where q'' = val_ $ (T.concat ["%", q', "%"] :: Text)
+
+
+              allPeopleFiltered Nothing = allPeople
+
               allPeople = all_ (_salaryPeople salaryDb)
+
 
 postPeople :: (PeopleT Identity) -> Handler PeopleId 
 postPeople p0 = liftIO $ do
